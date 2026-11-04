@@ -1,11 +1,21 @@
 import * as THREE from 'three';
 import {createKit,batchScenery} from './scene-kit.js';
-import {ROAD_ROUTES,SPAWN,riverX,BRIDGES,PONDS,isWater,isWaterBlocked,groundHeight} from './layout.js';
+import {ROAD_ROUTES,riverX,BRIDGES,PONDS,isWater,isWaterBlocked} from './layout.js';
 import {createWildlife} from './wildlife.js';
+import {createTerrain,createRoads} from './terrain.js';
+import {terrainSurfaceHeight,walkingHeight,bridgeHeight,WATER_LEVEL} from './elevation.js';
+import {createNeighborhood} from './neighborhood.js';
 export {SPAWN} from './layout.js';
 
 export function createTown(scene,materials,roofs) {
-  const kit=createKit(materials),{mat,mesh,box,ball,cylinder,beam,group}=kit;
+  const kit=createKit(materials),{mat}=kit;
+  const grounded=parent=>parent===source||parent===dynamic;
+  const group=(x,y,z,p,a=0)=>kit.group(x,y+(grounded(p)?terrainSurfaceHeight(x,z):0),z,p,a);
+  const mesh=(g,c,x,y,z,p)=>kit.mesh(g,c,x,y+(grounded(p)?terrainSurfaceHeight(x,z):0),z,p);
+  const box=(w,h,d,c,x,y,z,p)=>kit.box(w,h,d,c,x,y+(grounded(p)?terrainSurfaceHeight(x,z):0),z,p);
+  const ball=(r,c,x,y,z,p)=>kit.ball(r,c,x,y+(grounded(p)?terrainSurfaceHeight(x,z):0),z,p);
+  const cylinder=(a,b,h,c,x,y,z,p,n=10)=>kit.cylinder(a,b,h,c,x,y+(grounded(p)?terrainSurfaceHeight(x,z):0),z,p,n);
+  const beam=(a,b,r,c,p)=>kit.beam(grounded(p)?[a[0],a[1]+terrainSurfaceHeight(a[0],a[2]),a[2]]:a,grounded(p)?[b[0],b[1]+terrainSurfaceHeight(b[0],b[2]),b[2]]:b,r,c,p);
   const source=new THREE.Group();scene.add(source);const dynamic=new THREE.Group();scene.add(dynamic);
   const obstacles=[],paths=[],windmills=[],buildings=[];let seed=901;
   const random=()=>((seed=(seed*1664525+1013904223)>>>0)/4294967296);
@@ -13,51 +23,39 @@ export function createTown(scene,materials,roofs) {
   const roofMaterials=new Map();
   function roofMaterial(color){if(!roofMaterials.has(color)){const m=mat(color).clone();roofMaterials.set(color,m);roofs.push({material:m,color});}return roofMaterials.get(color);}
   const block=(x,z,w,d,angle=0)=>{const c=Math.abs(Math.cos(angle)),s=Math.abs(Math.sin(angle));const a=w*c+d*s,b=d*c+w*s;obstacles.push({minX:x-a/2,maxX:x+a/2,minZ:z-b/2,maxZ:z+b/2});};
-  box(360,.3,360,'#97ac72',0,-.22,0,source);
-  box(360,.08,360,'#b4c58a',0,-.04,0,source);
+  const terrainChunks=createTerrain(scene,kit);
   function ribbon(curve,width,color,y,parent=source,samples=180){
     const p=[],indices=[];
-    for(let i=0;i<=samples;i++){const v=curve.getPoint(i/samples),t=curve.getTangent(i/samples);const n=new THREE.Vector3(-t.z,0,t.x).normalize().multiplyScalar(width/2);p.push(v.x+n.x,y,v.z+n.z,v.x-n.x,y,v.z-n.z);}
+    for(let i=0;i<=samples;i++){const v=curve.getPoint(i/samples),t=curve.getTangent(i/samples);const n=new THREE.Vector3(-t.z,0,t.x).normalize().multiplyScalar(width/2);p.push(v.x+n.x,typeof y==='function'?y(v.x+n.x,v.z+n.z):y,v.z+n.z,v.x-n.x,typeof y==='function'?y(v.x-n.x,v.z-n.z):y,v.z-n.z);}
     for(let i=0;i<samples;i++){const a=i*2;indices.push(a,a+2,a+1,a+1,a+2,a+3);}
-    const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(p,3));geometry.setIndex(indices);geometry.computeVertexNormals();return mesh(geometry,color,0,0,0,parent);
+    const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(p,3));geometry.setIndex(indices);geometry.computeVertexNormals();return kit.mesh(geometry,color,0,0,0,parent);
   }
   for(const route of ROAD_ROUTES){
     const curve=new THREE.CatmullRomCurve3(route.points.map(([x,z])=>new THREE.Vector3(x,0,z)),false,'catmullrom',.35);
     paths.push({curve,width:route.width,samples:curve.getPoints(240),type:route.type});
-    ribbon(curve,route.width,route.type==='stone'?'#dccba3':'#c5ac80',.035);
-    if(route.type==='stone'){
-      // Irregular cobbles follow the curves, with staggered rows and grass gaps.
-      const length=curve.getLength(),count=Math.floor(length/1.6);
-      for(let i=0;i<count;i++){
-        const t=(i+.5)/count,v=curve.getPointAt(t),tangent=curve.getTangentAt(t),normal=new THREE.Vector3(-tangent.z,0,tangent.x);
-        for(let j=-1;j<=1;j++){
-          const offset=j*route.width*.25+(random()-.5)*.2;
-          const stone=box(.52+random()*.28,.035,.7+random()*.25,pick(['#ded5bb','#d4c9af','#e5dbc1']),v.x+normal.x*offset,.064,v.z+normal.z*offset,source);
-          stone.rotation.y=Math.atan2(tangent.x,tangent.z)+(random()-.5)*.16;
-        }
-      }
-    }
   }
   // An oval promenade provides a walkable route around the fountain.
   const ring=new THREE.EllipseCurve(0,0,11,9,0,Math.PI*2,false,0);
   const ringCurve=new THREE.CatmullRomCurve3(ring.getPoints(64).slice(0,-1).map(p=>new THREE.Vector3(p.x,0,p.y)),true);
-  ribbon(ringCurve,3,'#e4d7b7',.055,source,120);
+  const roadPaths=[...paths,{curve:ringCurve,width:3,type:'promenade'}];
+  for(const z of BRIDGES){const x=riverX(z);roadPaths.push({curve:new THREE.CatmullRomCurve3([new THREE.Vector3(x-13,0,z),new THREE.Vector3(x,0,z),new THREE.Vector3(x+13,0,z)]),width:4.7,type:'stone'});}
+  const roadSurface=createRoads(scene,kit,roadPaths);
   const pathDistance=(x,z)=>{let distance=Infinity;for(const path of paths)for(const p of path.samples)distance=Math.min(distance,Math.hypot(x-p.x,z-p.z)-path.width/2);return distance;};
   // A winding stream and two ponds, with reeds, fish and three bridges.
   const riverCurve=new THREE.CatmullRomCurve3(Array.from({length:49},(_,i)=>{const z=-180+i*7.5;return new THREE.Vector3(riverX(z),0,z);}));
-  ribbon(riverCurve,11,'#a2b37e',.018,source,360);
-  const water=mat('#83b5b2');water.transparent=true;water.opacity=.80;water.roughness=.3;
-  ribbon(riverCurve,9,water,.055,source,360);
-  for(const pond of PONDS){const pool=cylinder(1,1,.06,water,pond.x,.04,pond.z,source,48);pool.scale.set(pond.rx,1,pond.rz);}
+  const water=mat('#83b5b2');water.transparent=true;water.opacity=.72;water.roughness=.23;
+  ribbon(riverCurve,9,water,WATER_LEVEL+.015,source,360);
+  for(const pond of PONDS){const pool=kit.cylinder(1,1,.025,water,pond.x,WATER_LEVEL,pond.z,source,48);pool.scale.set(pond.rx,1,pond.rz);}
   for(const z of BRIDGES){
-    const x=riverX(z);
-    for(let i=0;i<30;i++)box(.49,.18,5.2,i%3?'#b39771':'#c3a680',x-7.25+i*.5,.37,z,source);
+    const x=riverX(z),bridge=kit.group(x,0,z,source);
+    for(let i=0;i<30;i++){const dx=-7.25+i*.5,h=bridgeHeight(x+dx,z);kit.box(.495,.2,5.2,i%3?'#b39771':'#c3a680',dx,h-.1,0,bridge);}
     for(const side of [-1,1]){
-      beam([x-7,.9,z+side*2.5],[x+7,.9,z+side*2.5],.075,'#9a805d',source);
-      for(let i=-7;i<=7;i+=2)box(.13,1.1,.13,'#9a805d',x+i,.7,z+side*2.5,source);
+      for(let i=-7;i<7;i+=2)kit.beam([i,bridgeHeight(x+i,z)+1,side*2.5],[i+2,bridgeHeight(x+i+2,z)+1,side*2.5],.075,'#9a805d',bridge);
+      for(let i=-7;i<=7;i+=2){const h=bridgeHeight(x+i,z);kit.box(.14,1.25,.14,'#9a805d',i,h+.5,side*2.5,bridge);}
       block(x,z+side*2.5,14,.2);
+      for(const dx of [-5,5]){const top=bridgeHeight(x+dx,z)-.2;kit.box(.5,top+.8,.5,'#a99e86',dx,(top-.8)/2,side*1.9,bridge);}
     }
-    for(const sign of [-1,1]){const approach=new THREE.CatmullRomCurve3([new THREE.Vector3(x+sign*7,0,z),new THREE.Vector3(x+sign*10,0,z+sign*1.4)]);ribbon(approach,4.8,'#c5ac80',.04,source,12);}
+    for(const dx of [-7.35,7.35]){const top=bridgeHeight(x+dx,z)-.15;kit.box(.75,top+.85,5.5,'#b5ab90',dx,(top-.85)/2,0,bridge);}
   }
   function pitchedRoof(g,w,d,h,color){
     const shape=new THREE.Shape();shape.moveTo(-w/2-.5,0);shape.lineTo(0,2.5);shape.lineTo(w/2+.5,0);shape.closePath();
@@ -65,8 +63,13 @@ export function createTown(scene,materials,roofs) {
     for(const side of [-1,1])beam([0,h+2.55,-d/2-.55],[side*(w/2+.55),h-.04,-d/2-.55],.09,'#6f6755',g);
   }
   function cottage(x,z,angle=0,style='cottage',scale=1){
+    scale*=1.65;
     const g=group(x,0,z,source,angle);g.scale.setScalar(scale);
     const w=style==='library'?7:style==='cafe'?6.5:5,d=style==='library'?6:4.5,h=3.5;
+    const c=Math.cos(angle),sn=Math.sin(angle),heights=[];
+    for(const lx of [-w/2,0,w/2])for(const lz of [-d/2,0,d/2])heights.push(terrainSurfaceHeight(x+(lx*c+lz*sn)*scale,z+(-lx*sn+lz*c)*scale));
+    const top=Math.max(...heights),bottom=Math.min(...heights);g.position.y=top+.02;
+    if(top-bottom>.08)box(w+.5,(top-bottom+.25)/scale,d+.5,'#b4aa92',0,-(top-bottom)/scale/2,0,g);
     const walls=style==='bakery'?'#edd2ad':style==='library'?'#cfdbc8':style==='cafe'?'#e5d6c9':pick(['#e7ddbf','#e7c8ae','#d8dfc4']);
     box(w+.5,.25,d+.5,'#b4aa92',0,.15,0,g);box(w,h,d,walls,0,h/2+.25,0,g);
     pitchedRoof(g,w,d,h+.1,pick(['#9f6555','#7e8c7e','#a77b5d']));
@@ -89,7 +92,7 @@ export function createTown(scene,materials,roofs) {
       if(style==='library')for(let i=0;i<9;i++)box(.18,.5+random()*.3,.28,pick(['#98705f','#768a80','#c1a169']),w/2-.5,1.1,d/2+.6-i*.35,g);
       if(style==='cafe')for(const side of [-1,1]){cylinder(.8,.8,.12,'#b59a74',side*2,.9,d/2+3,g);cylinder(.08,.12,.9,'#7e8067',side*2,.45,d/2+3,g);for(const dz of [-1,1]){box(.65,.1,.65,'#83917b',side*2,.55,d/2+3+dz,g);const lx=side*2*scale,lz=(d/2+3+dz)*scale;block(x+lx*Math.cos(angle)+lz*Math.sin(angle),z-lx*Math.sin(angle)+lz*Math.cos(angle),.7*scale,.7*scale,angle);}}
     }
-    block(x,z,(w+.5)*scale,(d+.5)*scale,angle);buildings.push({type:style,x,z});return g;
+    block(x,z,(w+.5)*scale,(d+.5)*scale,angle);buildings.push({type:style,x,z,floors:1,width:w*scale,height:(h+2.7)*scale,doorHeight:2.1*scale});return g;
   }
   // Landmarks are hand placed, rather than repeated on a grid.
   cottage(-16,18,.35,'bakery');cottage(18,26,-.8,'library');cottage(-27,-24,2.1,'cafe');
@@ -104,7 +107,7 @@ export function createTown(scene,materials,roofs) {
     for(let j=0;j<12;j++){const a=j/12*Math.PI*2;ball(.055,'#8c7958',Math.sin(a)*.84,Math.cos(a)*.84,2.39,clock);}
   }
   block(-17,-7,5,5);buildings.push({type:'clocktower',x:-17,z:-7});
-  // Glass conservatory, with timber ribs, planting beds and a domed crown.
+  // Glass conservatory, with timber ribs, planting beds and a glass roof.
   const greenhouse=group(18,0,-18,source,-.35);
   box(8,.35,6,'#b5b29a',0,.2,0,greenhouse);
   const glass=new THREE.MeshStandardMaterial({color:'#b2d5cc',transparent:true,opacity:.3,roughness:.18,side:THREE.DoubleSide,depthWrite:false});
@@ -124,8 +127,8 @@ export function createTown(scene,materials,roofs) {
     windmills.push(sails);block(x,z,6,6);buildings.push({type:'windmill',x,z});}
   windmill(-55,55);windmill(-113,-93);
   // Riverside watermill and animated waterwheel.
-  cottage(62,41,Math.PI/2,'cottage',1.3);
-  const wheel=group(56,2.6,42,dynamic);wheel.rotation.y=Math.PI/2;
+  cottage(70,41,Math.PI/2,'cottage',1);
+  const wheel=group(63,1.9,42,dynamic);wheel.rotation.y=Math.PI/2;
   for(const z of [-.55,.55]){const rim=mesh(new THREE.TorusGeometry(2.3,.14,6,24),'#8a7352',0,0,z,wheel);for(let i=0;i<8;i++){const a=i*Math.PI/4;beam([0,0,z],[Math.sin(a)*2.3,Math.cos(a)*2.3,z],.08,'#8a7352',wheel);}}
   for(let i=0;i<12;i++){const a=i*Math.PI/6;const paddle=box(.8,.16,1.4,'#aa8e65',Math.sin(a)*2.3,Math.cos(a)*2.3,0,wheel);paddle.rotation.z=-a;}
   // Market tents, a well, an archway, standing stones and a tiny shrine.
@@ -147,7 +150,7 @@ export function createTown(scene,materials,roofs) {
   const mushroomHouse=group(-94,0,22,source);cylinder(2.8,3.3,4,'#e7d9bb',0,2,0,mushroomHouse,16);
   const cap=ball(1,roofMaterial('#b27969'),0,4.8,0,mushroomHouse);cap.scale.set(4.6,2,4.6);
   for(let i=0;i<9;i++){const a=i/9*Math.PI*2;ball(.35,'#e8d9b5',Math.sin(a)*3.7,5.5,Math.cos(a)*3.7,mushroomHouse);}
-  box(1.2,2,.15,'#7b7056',0,1.1,2.8,mushroomHouse);block(-94,22,6.5,6.5);buildings.push({type:'mushroom-house',x:-94,z:22});
+  box(1.6,2.7,.15,'#7b7056',0,1.45,2.8,mushroomHouse);block(-94,22,6.5,6.5);buildings.push({type:'mushroom-house',x:-94,z:22,floors:1,width:6.5,height:6.8,doorHeight:2.7});
   // Fountain and sculptural village details.
   cylinder(2.6,2.8,.65,'#b7bbaa',0,.4,0,source,24);cylinder(2.3,2.3,.07,'#91bcc1',0,.76,0,source,32);
   cylinder(.35,.55,1.5,'#d9d6bc',0,1.4,0,source);cylinder(1.3,.3,.25,'#d9d6bc',0,2.2,0,source,16);block(0,0,5.6,5.6);
@@ -156,11 +159,12 @@ export function createTown(scene,materials,roofs) {
     const bench=group(x,0,z,source,angle);box(2.4,.15,.8,'#a28b61',0,.75,0,bench);box(2.4,.6,.12,'#a28b61',0,1.08,-.36,bench);for(const dx of [-.85,.85])box(.14,.75,.65,'#6d7961',dx,.35,0,bench);block(x,z,2.4,.9,angle);
   }
   // Cottages turn toward their own meandering lane, with generous garden gaps.
+  const neighborhood=createNeighborhood(source,kit,{block,buildings,roofs,roofMaterial});
   const reserved=buildings.map(b=>({x:b.x,z:b.z}));
   for(const path of paths){for(let i=0;i<8;i++){
     const t=.08+i*.115,v=path.curve.getPointAt(t),tangent=path.curve.getTangentAt(t),side=i%2?1:-1;
-    const x=v.x-tangent.z*side*(9+random()*4),z=v.z+tangent.x*side*(9+random()*4);
-    if(Math.abs(x)>167||Math.abs(z)>167||isWater(x,z)||isWater(x+5,z)||isWater(x-5,z)||reserved.some(b=>Math.hypot(x-b.x,z-b.z)<14)||pathDistance(x,z)<4)continue;
+    const x=v.x-tangent.z*side*(14+random()*5),z=v.z+tangent.x*side*(14+random()*5);
+    if(Math.abs(x)>167||Math.abs(z)>167||isWater(x,z)||isWater(x+9,z)||isWater(x-9,z)||reserved.some(b=>Math.hypot(x-b.x,z-b.z)<22)||pathDistance(x,z)<4)continue;
     cottage(x,z,Math.atan2(v.x-x,v.z-z),i%6===0?'bakery':'cottage',.8+random()*.35);reserved.push({x,z});
   }}
   function tree(x,z,type,scale=1){
@@ -231,7 +235,7 @@ export function createTown(scene,materials,roofs) {
     if(BRIDGES.some(b=>Math.abs(z-b)<5))continue;
     for(let j=0;j<3;j++){const dx=x+(random()-.5);cylinder(.025,.03,1.1,'#8c9a62',dx,.55,z+j*.3,source,4);cylinder(.07,.07,.3,'#9c7750',dx,1.1,z+j*.3,source,6);}
   }
-  for(const pond of PONDS)for(let i=0;i<12;i++){const a=random()*6.28,r=.3+random()*.5;const lily=cylinder(.5,.5,.025,'#91a56a',pond.x+Math.cos(a)*pond.rx*r,.10,pond.z+Math.sin(a)*pond.rz*r,source,9);if(i%3===0)flower(lily.position.x,lily.position.z,2);}
+  for(const pond of PONDS)for(let i=0;i<12;i++){const a=random()*6.28,r=.3+random()*.5;const lily=kit.cylinder(.5,.5,.025,'#91a56a',pond.x+Math.cos(a)*pond.rx*r,.10,pond.z+Math.sin(a)*pond.rz*r,source,9);if(i%3===0)kit.ball(.15,'#c0a0bd',lily.position.x,.19,lily.position.z,source);}
   for(let i=0;i<30;i++){const x=-58+Math.sin(i*.5)*4,z=-18+i*.6;if(!isWater(x,z)){const rock=ball(.45,'#b8b9a3',x,.15,z,source);rock.scale.set(1.4,.35,1);}}
   // Lanterns, planters, timber carts, fences and stone decorations.
   for(const path of paths)for(let i=0;i<6;i++){
@@ -242,13 +246,19 @@ export function createTown(scene,materials,roofs) {
   const cart=group(-12,0,23,source,-.5);box(2.5,.15,1.5,'#a38c64',0,.7,0,cart);for(const side of [-1,1]){box(2.5,.6,.1,'#a38c64',0,1,side*.75,cart);for(const x of [-.8,.8]){const tire=mesh(new THREE.TorusGeometry(.4,.07,5,12),'#746b52',x,.4,side*.9,cart);}}beam([-1,0,0],[-3,.5,0],.06,'#9c835c',cart);
   block(-12,23,3,2);
   for(let i=0;i<12;i++){const x=-49+i*1.1,z=46+Math.sin(i*.16);box(.12,1.1,.12,'#d1c4a2',x,.55,z,source);if(i<11)beam([x,.8,z],[x+1.1,.8,46+Math.sin((i+1)*.16)],.06,'#d1c4a2',source);}
-  // Rolling perimeter hills soften the horizon while the walkable ground stays level.
+  // Rolling perimeter hills blend into the height-mapped walkable landscape.
   for(let i=0;i<22;i++){const a=i/22*Math.PI*2;const hill=ball(1,i%2?'#91a56a':'#a2b77b',Math.sin(a)*195,-4,Math.cos(a)*195,source);hill.scale.set(25+random()*18,10+random()*15,28);}
-  const chunks=batchScenery(source,scene);
+  const chunks=[...terrainChunks,...roadSurface.meshes,...batchScenery(source,scene)];
   const wildlife=createWildlife(scene,kit,{isBlocked:(x,z)=>isWater(x,z)||occupied(x,z,.8),random});
-  return {obstacles,chunks,buildings,paths,wildlife,isBlocked:isWaterBlocked,groundHeight,update(dt,elapsed,position){
+  function heightAt(x,z){
+    for(const home of neighborhood.homes){const dx=x-home.x,dz=z-home.z,lx=dx*Math.cos(home.angle)-dz*Math.sin(home.angle),lz=dx*Math.sin(home.angle)+dz*Math.cos(home.angle);
+      if(Math.abs(lx)<home.yardWidth/2&&Math.abs(lz)<home.yardDepth/2)return home.base+.11;
+    }
+    return walkingHeight(x,z);
+  }
+  return {obstacles,chunks,buildings,paths,wildlife,roadSurface,neighborhood,isBlocked:isWaterBlocked,groundHeight:heightAt,update(dt,elapsed,position){
     for(const sails of windmills)sails.rotation.z-=dt*.35;
-    wheel.rotation.z+=dt*.5;fountain.position.y=2.65+Math.sin(elapsed*3)*.1;
+    wheel.rotation.z+=dt*.5;fountain.position.y=terrainSurfaceHeight(0,0)+2.65+Math.sin(elapsed*3)*.1;
     wildlife.update(dt,elapsed,position);
     for(const chunk of chunks){const sphere=chunk.geometry.boundingSphere;chunk.visible=Math.hypot(sphere.center.x-position.x,sphere.center.z-position.z)<145+sphere.radius;}
   }};

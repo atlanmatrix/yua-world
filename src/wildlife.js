@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {riverX,PONDS,isWater} from './layout.js';
+import {terrainSurfaceHeight,WATER_LEVEL} from './elevation.js';
 
 export function createWildlife(scene,kit,{isBlocked,random}) {
   const {box,ball,cylinder,beam,group,mesh}=kit;
@@ -87,7 +88,8 @@ export function createWildlife(scene,kit,{isBlocked,random}) {
       const aquatic=type==='duck'||type==='fish',flying=['bird','butterfly','dragonfly'].includes(type);
       if((aquatic&&isWater(x,z))||flying||(!aquatic&&!isBlocked(x,z))){root.position.x=x;root.position.z=z;}
       root.rotation.y=Math.atan2(Math.cos(t),Math.cos(t*.7)*.7);
-      root.position.y=type==='fish'?.09:type==='duck'?.10:type==='bird'?7+Math.sin(t)*1.5:type==='butterfly'?1.1+Math.sin(t*2)*.5:type==='dragonfly'?1.4+Math.sin(t)*.3:.04;
+      const ground=terrainSurfaceHeight(root.position.x,root.position.z);
+      root.position.y=type==='fish'?WATER_LEVEL-.08:type==='duck'?WATER_LEVEL+.06:ground+(type==='bird'?7+Math.sin(t)*1.5:type==='butterfly'?1.1+Math.sin(t*2)*.5:type==='dragonfly'?1.4+Math.sin(t)*.3:.04);
       if(type==='rabbit')body.position.y=Math.max(0,Math.sin(time*5+phase))*.15;
       for(const {leg,sign} of limbs)leg.rotation.x=Math.sin(time*4+phase)*.25*sign;
       wings.forEach((wing,i)=>{if(type==='fish')wing.rotation.y=Math.sin(time*7+phase)*.4;else wing.rotation.z=Math.sin(time*(type==='bird'?6:18)+phase)*(i%2?1:-1)*.65;});

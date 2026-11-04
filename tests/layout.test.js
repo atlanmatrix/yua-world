@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {BRIDGES,PONDS,riverX,isWaterBlocked,groundHeight,ROAD_ROUTES,SPAWN} from '../src/layout.js';
+import {BRIDGES,PONDS,riverX,isWaterBlocked,ROAD_ROUTES,SPAWN} from '../src/layout.js';
+import {walkingHeight as groundHeight} from '../src/elevation.js';
 import {movePlayer} from '../src/movement.js';
 test('all three bridges allow a complete river crossing',()=>{
   for(const z of BRIDGES){const x=riverX(z);const result=movePlayer({x:x-9,z},{x:1,z:0},18,[],.45,isWaterBlocked);assert.ok(Math.abs(result.x-(x+9))<1e-8);assert.ok(groundHeight(x,z)>.4);}

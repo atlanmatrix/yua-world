@@ -10,10 +10,10 @@ export function isWaterBlocked(x,z) {
   if(BRIDGES.some(b=>Math.abs(z-b)<2.1&&Math.abs(x-riverX(b))<8))return false;
   return isWater(x,z);
 }
-export function groundHeight(x,z) {
-  return BRIDGES.some(b=>Math.abs(z-b)<2.4&&Math.abs(x-riverX(b))<7.5)?.48:.04;
-}
 export const ROAD_ROUTES = [
+  {type:'stone',width:3.6,points:[[0,0],[10,-12],[3,-25],[-7,-31],[-7,-34]]},
+  {type:'stone',width:4.2,points:[[64,11],[76,14],[87,21],[82,25],[82,31]]},
+  {type:'stone',width:3.8,points:[[-49,30],[-40,23],[-43,10],[-48,2],[-53,1]]},
   {type:'stone',width:5,points:[[-165,80],[-130,57],[-105,60],[-76,38],[-49,30],[-27,13],[0,0],[20,3],[42,8],[64,11],[91,3],[120,24],[161,15]]},
   {type:'stone',width:4.4,points:[[-99,-161],[-83,-124],[-94,-91],[-64,-63],[-43,-35],[-22,-18],[0,0],[8,30],[-6,58],[9,86],[0,118],[21,160]]},
   {type:'dirt',width:3.2,points:[[-162,-70],[-129,-62],[-111,-32],[-92,-13],[-96,14],[-76,38],[-68,68],[-87,102],[-121,128]]},
