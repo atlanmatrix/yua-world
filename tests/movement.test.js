@@ -26,3 +26,12 @@ test('river is blocked while the bridge corridor remains passable', () => {
   assert.ok(movePlayer({ x: 21, z: 10 }, { x: 1, z: 0 }, 12, river).x < 23.3);
   assert.ok(movePlayer({ x: 21, z: 0 }, { x: 1, z: 0 }, 12, river).x > 31);
 });
+test('expanded town allows walking beyond the original town bounds', () => {
+  const p = movePlayer({ x: 43, z: 50 }, { x: 1, z: 0 }, 80, []);
+  assert.ok(Math.abs(p.x - 123) < 1e-9);
+});
+test('expanded town retains both negative and positive outer boundaries', () => {
+  assert.equal(WORLD_LIMIT * 2, 360);
+  const p = movePlayer({ x: -179, z: 100 }, { x: -1, z: 0 }, 20, []);
+  assert.ok(p.x >= -WORLD_LIMIT + PLAYER_RADIUS);
+});

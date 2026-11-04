@@ -1,4 +1,4 @@
-export const WORLD_LIMIT = 43;
+export const WORLD_LIMIT = 180;
 export const PLAYER_RADIUS = 0.45;
 
 export function movePlayer(position, direction, distance, obstacles, radius = PLAYER_RADIUS) {

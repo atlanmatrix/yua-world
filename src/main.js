@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { movePlayer } from './movement.js';
 import { createClimate } from './climate.js';
+import { createControls } from './controls.js';
+import { expandTown, SPAWN } from './town.js';
 
 const loading = document.querySelector('#loading');
 try {
@@ -160,6 +162,7 @@ try {
     if (Math.abs(x) < 5 || Math.abs(z) < 4 || (x > 22 && x < 32)) continue;
     sphere(0.09 + random() * 0.08, random() > 0.5 ? '#eadba2' : '#d0ad92', x, 0.12, z);
   }
+  const town = expandTown(scene, obstacles, sails, waterDrop);
   // Friendly visitor in a mustard shirt and a straw hat.
   const player = new THREE.Group(); scene.add(player);
   const body = new THREE.Group(); player.add(body);
@@ -180,83 +183,50 @@ try {
     limbs.push({ leg, arm, side });
   }
   const climate = createClimate({ scene, sun, ambient, materials, roofs, renderer });
-  const keys = new Set();
-  const touch = new Set();
-  const controls = ['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'shift'];
-  addEventListener('keydown', e => { if (controls.includes(e.key.toLowerCase()) && !['INPUT', 'TEXTAREA'].includes(e.target.tagName)) { e.preventDefault(); keys.add(e.key.toLowerCase()); } });
-  addEventListener('keyup', e => keys.delete(e.key.toLowerCase()));
-  const clearInput = () => { keys.clear(); touch.clear(); };
-  addEventListener('blur', clearInput);
-  document.addEventListener('visibilitychange', clearInput);
-  for (const button of document.querySelectorAll('[data-move]')) {
-    button.addEventListener('pointerdown', e => { e.preventDefault(); button.setPointerCapture(e.pointerId); touch.add(button.dataset.move); });
-    for (const name of ['pointerup', 'pointercancel', 'lostpointercapture']) button.addEventListener(name, () => touch.delete(button.dataset.move));
-  }
-  let yaw = Math.PI / 5, pitch = 0.78, drag = null;
-  renderer.domElement.addEventListener('pointerdown', e => { drag = { id: e.pointerId, x: e.clientX, y: e.clientY }; renderer.domElement.setPointerCapture(e.pointerId); });
-  renderer.domElement.addEventListener('pointermove', e => {
-    if (!drag || drag.id !== e.pointerId) return;
-    yaw -= (e.clientX - drag.x) * 0.005;
-    pitch = THREE.MathUtils.clamp(pitch + (e.clientY - drag.y) * 0.003, 0.35, 1.15);
-    drag.x = e.clientX; drag.y = e.clientY;
+  let yaw = Math.PI / 5, pitch = 0.78;
+  const controls = createControls((dx, dy) => {
+    yaw -= dx * 0.005;
+    pitch = THREE.MathUtils.clamp(pitch + dy * 0.003, 0.35, 1.15);
   });
-  for (const name of ['pointerup', 'pointercancel', 'lostpointercapture']) renderer.domElement.addEventListener(name, () => { drag = null; });
-  const landmarks = [
-    { x: 0, z: 0, name: '中央喷泉', title: '听见水声，便到了广场', text: '午后的阳光落在喷泉上。找一张长椅，让时间慢一点。' },
-    { x: -15, z: -29, name: '麦田风车', title: '风经过，麦浪就有了形状', text: '老风车仍在不紧不慢地转动，金色的麦田正等着秋天。' },
-    { x: 27, z: 0, name: '河畔木桥', title: '沿着水流，寻找远方', text: '过了小桥，是另一片树荫。小河把整个下午都映成了蓝色。' },
-    { x: 13, z: 27, name: '乡间花园', title: '每一朵花，都有自己的季节', text: '村民们照料的小花园，藏着这个小镇最温柔的颜色。' },
-    { x: -11, z: -10, name: '暖阳小屋', title: '炊烟升起的地方', text: '红屋顶、木窗和窗台的花。平凡的日子，也值得被珍藏。' },
-  ];
-  let activeLandmark = -2;
-  function updateLocation() {
-    let nearest = -1, distance = 9;
-    landmarks.forEach((l, i) => { const d = Math.hypot(player.position.x - l.x, player.position.z - l.z); if (d < distance) { distance = d; nearest = i; } });
-    if (nearest === activeLandmark) return;
-    activeLandmark = nearest;
-    const l = landmarks[nearest];
-    document.querySelector('#location').textContent = l?.name ?? '乡间小路';
-    document.querySelector('#landmark-index').textContent = nearest < 0 ? 'YUA / WORLD' : `${String(nearest + 1).padStart(2, '0')} / 05`;
-    document.querySelector('#landmark-title').textContent = l?.title ?? '不赶路，只感受路';
-    document.querySelector('#landmark-text').textContent = l?.text ?? '沿着田间小路，寻找风车、花园和河畔。每个转角都值得停留。';
-  }
   function cameraTarget() {
     return new THREE.Vector3(player.position.x + Math.sin(yaw) * Math.cos(pitch) * 31, 1.3 + Math.sin(pitch) * 31, player.position.z + Math.cos(yaw) * Math.cos(pitch) * 31);
   }
-  function reset() { clearInput(); player.position.set(0, 0.22, 15); player.rotation.y = Math.PI; yaw = Math.PI / 5; pitch = 0.78; camera.position.copy(cameraTarget()); updateLocation(); }
-  document.querySelector('#reset').addEventListener('click', reset);
-  reset();
+  player.position.set(SPAWN.x, 0.22, SPAWN.z);
+  player.rotation.y = Math.PI;
+  camera.position.copy(cameraTarget());
   addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); });
   const clock = new THREE.Clock(); let elapsed = 0;
   const lookAt = new THREE.Vector3();
   renderer.setAnimationLoop(() => {
     const dt = Math.min(clock.getDelta(), 0.05); elapsed += dt;
-    const forward = Number(keys.has('w') || keys.has('arrowup') || touch.has('up')) - Number(keys.has('s') || keys.has('arrowdown') || touch.has('down'));
-    const right = Number(keys.has('d') || keys.has('arrowright') || touch.has('right')) - Number(keys.has('a') || keys.has('arrowleft') || touch.has('left'));
+    const input = controls.read();
+    const forward = -input.y, right = input.x;
     const direction = { x: -Math.sin(yaw) * forward + Math.cos(yaw) * right, z: -Math.cos(yaw) * forward - Math.sin(yaw) * right };
     const previous = player.position.clone();
-    const next = movePlayer(player.position, direction, dt * (keys.has('shift') ? 8 : 4.5), obstacles);
+    const next = movePlayer(player.position, direction, dt * (input.sprint ? 10 : 7) * input.strength, obstacles);
     player.position.x = next.x; player.position.z = next.z;
     const walking = previous.distanceTo(player.position) > 0.001;
     if (walking) {
       const target = Math.atan2(direction.x, direction.z);
       player.rotation.y += Math.atan2(Math.sin(target - player.rotation.y), Math.cos(target - player.rotation.y)) * Math.min(1, dt * 14);
     }
-    for (const { leg, arm, side } of limbs) { const swing = walking ? Math.sin(elapsed * (keys.has('shift') ? 16 : 11)) * 0.55 * side : 0; leg.rotation.x = swing; arm.rotation.x = -swing; }
+    for (const { leg, arm, side } of limbs) { const swing = walking ? Math.sin(elapsed * (input.sprint ? 16 : 11)) * 0.55 * side : 0; leg.rotation.x = swing; arm.rotation.x = -swing; }
     body.position.y = walking ? Math.abs(Math.sin(elapsed * 11)) * 0.06 : Math.sin(elapsed * 2) * 0.018;
-    sails.rotation.z -= dt * 0.35;
-    waterDrop.position.y = 2.3 + Math.sin(elapsed * 3) * 0.12;
+    town.update(dt, elapsed, player.position);
+    sun.position.set(player.position.x - 25, 45, player.position.z + 20);
+    sun.target.position.set(player.position.x, 0, player.position.z);
+    sun.target.updateMatrixWorld();
     climate.update(dt, elapsed, player.position);
     camera.position.lerp(cameraTarget(), 1 - Math.exp(-dt * 5));
     lookAt.set(player.position.x, 1.1, player.position.z);
     camera.lookAt(lookAt);
-    updateLocation();
     renderer.render(scene, camera);
     loading.hidden = true;
   });
-  renderer.domElement.addEventListener('webglcontextlost', e => { e.preventDefault(); loading.hidden = false; loading.textContent = '图形连接已中断，请刷新页面重新进入小镇。'; });
+  renderer.domElement.addEventListener('webglcontextlost', e => { e.preventDefault(); loading.hidden = false; loading.dataset.error = 'true'; loading.setAttribute('aria-label', '图形连接中断，请刷新'); });
 } catch (error) {
   console.error(error);
   loading.hidden = false;
-  loading.textContent = '小镇暂时无法加载。请确认浏览器支持 WebGL，开启硬件加速后刷新页面。';
+  loading.dataset.error = 'true';
+  loading.setAttribute('aria-label', '图形加载失败，请检查浏览器是否支持 WebGL');
 }
