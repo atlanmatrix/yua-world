@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { movePlayer } from './movement.js';
+import { createClimate } from './climate.js';
 
 const loading = document.querySelector('#loading');
 try {
@@ -16,7 +17,8 @@ try {
   renderer.toneMappingExposure = 1.25;
   document.querySelector('#world').appendChild(renderer.domElement);
   const camera = new THREE.PerspectiveCamera(40, innerWidth / innerHeight, 0.1, 220);
-  scene.add(new THREE.HemisphereLight('#fff7df', '#788859', 2.4));
+  const ambient = new THREE.HemisphereLight('#fff7df', '#788859', 2.4);
+  scene.add(ambient);
   const sun = new THREE.DirectionalLight('#fff0d0', 3.1);
   sun.position.set(-25, 45, 20);
   sun.castShadow = true;
@@ -25,6 +27,7 @@ try {
   sun.shadow.normalBias = 0.04;
   scene.add(sun);
   const materials = new Map();
+  const roofs = [];
   const mat = color => {
     if (!materials.has(color)) materials.set(color, new THREE.MeshStandardMaterial({ color, roughness: 0.95, flatShading: true }));
     return materials.get(color);
@@ -71,6 +74,8 @@ try {
     const roof = new THREE.Shape(); roof.moveTo(-w / 2 - 0.4, 0); roof.lineTo(0, 2.5); roof.lineTo(w / 2 + 0.4, 0); roof.closePath();
     const roofMesh = mesh(new THREE.ExtrudeGeometry(roof, { depth: d + 0.8, bevelEnabled: false }), roofColor, 0, h + 0.2, -d / 2 - 0.4, group);
     roofMesh.castShadow = true;
+    roofMesh.material = roofMesh.material.clone();
+    roofs.push({ material: roofMesh.material, color: roofColor });
     box(0.6, 1.9, 0.6, '#d7c6a8', w * 0.28, h + 1.65, 0.7, group);
     box(1, 2.1, 0.12, '#766a51', 0, 1.3, d / 2 + 0.08, group);
     sphere(0.055, '#edcd7d', 0.3, 1.2, d / 2 + 0.17, group);
@@ -174,6 +179,7 @@ try {
     sphere(0.13, '#e8c3a0', 0, -0.52, 0, arm);
     limbs.push({ leg, arm, side });
   }
+  const climate = createClimate({ scene, sun, ambient, materials, roofs, renderer });
   const keys = new Set();
   const touch = new Set();
   const controls = ['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'shift'];
@@ -240,6 +246,7 @@ try {
     body.position.y = walking ? Math.abs(Math.sin(elapsed * 11)) * 0.06 : Math.sin(elapsed * 2) * 0.018;
     sails.rotation.z -= dt * 0.35;
     waterDrop.position.y = 2.3 + Math.sin(elapsed * 3) * 0.12;
+    climate.update(dt, elapsed, player.position);
     camera.position.lerp(cameraTarget(), 1 - Math.exp(-dt * 5));
     lookAt.set(player.position.x, 1.1, player.position.z);
     camera.lookAt(lookAt);

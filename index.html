@@ -11,7 +11,26 @@
 <body>
   <main id="world" aria-label="可探索的三维乡间小镇"></main>
   <header class="brand"><span class="brand-icon">✳</span><div>风栖小镇<small>YUA WORLD · A LITTLE ESCAPE</small></div></header>
-  <div class="weather"><span class="sun">☀</span> 午后晴朗 <span class="divider"></span> 24°C</div>
+  <div class="weather" aria-live="polite"><span class="sun" id="weather-icon">☀</span><span id="weather-label">夏日晴朗</span><span class="divider"></span><span id="temperature">28°C</span></div>
+  <details class="climate-panel">
+    <summary>时节与天气 <span>切换风景</span></summary>
+    <div class="climate-options">
+      <p id="season-label">四季</p>
+      <div class="season-options" role="group" aria-labelledby="season-label">
+        <button type="button" data-season="spring" aria-pressed="false">春</button>
+        <button type="button" data-season="summer" aria-pressed="true">夏</button>
+        <button type="button" data-season="autumn" aria-pressed="false">秋</button>
+        <button type="button" data-season="winter" aria-pressed="false">冬</button>
+      </div>
+      <p id="weather-options-label">天气</p>
+      <div class="weather-options" role="group" aria-labelledby="weather-options-label">
+        <button type="button" data-weather="clear" aria-pressed="true">☀ 晴天</button>
+        <button type="button" data-weather="rain" aria-pressed="false">☂ 雨天</button>
+        <button type="button" data-weather="snow" aria-pressed="false">❄ 雪天</button>
+      </div>
+      <small>四季与天气可自由搭配</small>
+    </div>
+  </details>
   <section class="intro"><span class="eyebrow">慢下来，去走走</span><h1>把日常，<br>留在小镇之外。</h1><p>沿着田间小路，发现属于你的片刻宁静。</p></section>
   <div class="location"><span class="live-dot"></span><span id="location">小镇入口</span><span class="location-sub">自由漫游中</span></div>
   <aside class="guide"><div class="guide-title">漫游指南 <span>EXPLORE</span></div><div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><span>或方向键移动</span></div><div><kbd>Shift</kbd><span>轻快奔跑</span><span class="mouse-tip">拖动画面 · 转动视角</span></div><div class="guide-footer">走近地标，发现小镇的故事 <button id="reset" type="button">回到入口 ↗</button></div></aside>
