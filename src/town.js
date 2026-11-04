@@ -5,6 +5,7 @@ import {createWildlife} from './wildlife.js';
 import {createTerrain,createRoads} from './terrain.js';
 import {terrainSurfaceHeight,walkingHeight,bridgeHeight,WATER_LEVEL} from './elevation.js';
 import {createNeighborhood} from './neighborhood.js';
+import {createPlayerHome} from './home.js';
 export {SPAWN} from './layout.js';
 
 export function createTown(scene,materials,roofs) {
@@ -159,12 +160,13 @@ export function createTown(scene,materials,roofs) {
     const bench=group(x,0,z,source,angle);box(2.4,.15,.8,'#a28b61',0,.75,0,bench);box(2.4,.6,.12,'#a28b61',0,1.08,-.36,bench);for(const dx of [-.85,.85])box(.14,.75,.65,'#6d7961',dx,.35,0,bench);block(x,z,2.4,.9,angle);
   }
   // Cottages turn toward their own meandering lane, with generous garden gaps.
+  const playerHome=createPlayerHome(scene,materials,roofMaterial);buildings.push(playerHome.feature);
   const neighborhood=createNeighborhood(source,kit,{block,buildings,roofs,roofMaterial});
   const reserved=buildings.map(b=>({x:b.x,z:b.z}));
   for(const path of paths){for(let i=0;i<8;i++){
     const t=.08+i*.115,v=path.curve.getPointAt(t),tangent=path.curve.getTangentAt(t),side=i%2?1:-1;
     const x=v.x-tangent.z*side*(14+random()*5),z=v.z+tangent.x*side*(14+random()*5);
-    if(Math.abs(x)>167||Math.abs(z)>167||isWater(x,z)||isWater(x+9,z)||isWater(x-9,z)||reserved.some(b=>Math.hypot(x-b.x,z-b.z)<22)||pathDistance(x,z)<4)continue;
+    if(Math.abs(x)>167||Math.abs(z)>167||playerHome.containsSite(x,z,9)||isWater(x,z)||isWater(x+9,z)||isWater(x-9,z)||reserved.some(b=>Math.hypot(x-b.x,z-b.z)<22)||pathDistance(x,z)<4)continue;
     cottage(x,z,Math.atan2(v.x-x,v.z-z),i%6===0?'bakery':'cottage',.8+random()*.35);reserved.push({x,z});
   }}
   function tree(x,z,type,scale=1){
@@ -184,7 +186,7 @@ export function createTown(scene,materials,roofs) {
     }
     block(x,z,.7*scale,.7*scale);
   }
-  const occupied=(x,z,margin=0)=>obstacles.some(o=>x>o.minX-margin&&x<o.maxX+margin&&z>o.minZ-margin&&z<o.maxZ+margin);
+  const occupied=(x,z,margin=0)=>playerHome.containsSite(x,z,margin)||obstacles.some(o=>x>o.minX-margin&&x<o.maxX+margin&&z>o.minZ-margin&&z<o.maxZ+margin);
   // Curated groves close to the arrival path make the first view lush.
   for(const [x,z,type] of [[-8,20,'cherry'],[11,17,'birch'],[-23,31,'willow'],[24,13,'cherry'],[-6,-9,'cherry'],[9,-10,'birch'],[-30,5,'pine'],[22,-34,'pine']])if(!occupied(x,z,1))tree(x,z,type,1);
   for(let i=0;i<780;i++){
@@ -250,13 +252,15 @@ export function createTown(scene,materials,roofs) {
   for(let i=0;i<22;i++){const a=i/22*Math.PI*2;const hill=ball(1,i%2?'#91a56a':'#a2b77b',Math.sin(a)*195,-4,Math.cos(a)*195,source);hill.scale.set(25+random()*18,10+random()*15,28);}
   const chunks=[...terrainChunks,...roadSurface.meshes,...batchScenery(source,scene)];
   const wildlife=createWildlife(scene,kit,{isBlocked:(x,z)=>isWater(x,z)||occupied(x,z,.8),random});
-  function heightAt(x,z){
+  function heightAt(x,z,previousY){
+    const homeLevel=playerHome.heightAt(x,z,previousY);if(homeLevel!==null)return homeLevel;
     for(const home of neighborhood.homes){const dx=x-home.x,dz=z-home.z,lx=dx*Math.cos(home.angle)-dz*Math.sin(home.angle),lz=dx*Math.sin(home.angle)+dz*Math.cos(home.angle);
       if(Math.abs(lx)<home.yardWidth/2&&Math.abs(lz)<home.yardDepth/2)return home.base+.11;
     }
     return walkingHeight(x,z);
   }
-  return {obstacles,chunks,buildings,paths,wildlife,roadSurface,neighborhood,isBlocked:isWaterBlocked,groundHeight:heightAt,update(dt,elapsed,position){
+  return {obstacles,chunks,buildings,paths,wildlife,roadSurface,neighborhood,playerHome,isBlocked:(x,z,y)=>isWaterBlocked(x,z)||playerHome.isBlocked(x,z,y),groundHeight:heightAt,update(dt,elapsed,position,camera){
+    playerHome.update(dt,elapsed,position,camera);
     for(const sails of windmills)sails.rotation.z-=dt*.35;
     wheel.rotation.z+=dt*.5;fountain.position.y=terrainSurfaceHeight(0,0)+2.65+Math.sin(elapsed*3)*.1;
     wildlife.update(dt,elapsed,position);

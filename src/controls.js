@@ -3,6 +3,7 @@ export function createControls(onLook) {
   const knob = document.querySelector('#joystick-knob');
   const lookZone = document.querySelector('#look-zone');
   const keys = new Set();
+  let enabled=true;
   let stickPointer = null, lookPointer = null;
   let analog = { x: 0, y: 0 }, previousLook = null;
 
@@ -26,7 +27,8 @@ export function createControls(onLook) {
     stick.dataset.active = 'false';
   }
   stick.addEventListener('pointerdown', event => {
-    if (stickPointer !== null) return;
+    if (!enabled || stickPointer !== null) return;
+    document.activeElement?.blur();
     event.preventDefault();
     stickPointer = event.pointerId;
     stick.setPointerCapture(event.pointerId);
@@ -36,7 +38,8 @@ export function createControls(onLook) {
   stick.addEventListener('pointermove', event => { if (event.pointerId === stickPointer) updateStick(event); });
   for (const name of ['pointerup', 'pointercancel', 'lostpointercapture']) stick.addEventListener(name, event => { if (event.pointerId === stickPointer) releaseStick(); });
   lookZone.addEventListener('pointerdown', event => {
-    if (lookPointer !== null) return;
+    if (!enabled || lookPointer !== null) return;
+    document.activeElement?.blur();
     event.preventDefault();
     lookPointer = event.pointerId;
     previousLook = { x: event.clientX, y: event.clientY };
@@ -50,7 +53,7 @@ export function createControls(onLook) {
   for (const name of ['pointerup', 'pointercancel', 'lostpointercapture']) lookZone.addEventListener(name, event => { if (event.pointerId === lookPointer) { lookPointer = null; previousLook = null; } });
   const supported = ['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'shift'];
   addEventListener('keydown', event => {
-    if (!supported.includes(event.key.toLowerCase()) || event.target.closest('button,input,textarea,select')) return;
+    if (!enabled || !supported.includes(event.key.toLowerCase()) || event.target.closest('button,input,textarea,select')) return;
     event.preventDefault(); keys.add(event.key.toLowerCase());
   });
   addEventListener('keyup', event => keys.delete(event.key.toLowerCase()));
@@ -58,7 +61,9 @@ export function createControls(onLook) {
   addEventListener('blur', clear);
   document.addEventListener('visibilitychange', clear);
   return {
+    setEnabled(value){enabled=value;if(!enabled)clear();},
     read() {
+      if(!enabled)return {x:0,y:0,strength:0,sprint:false};
       const x = Number(keys.has('d') || keys.has('arrowright')) - Number(keys.has('a') || keys.has('arrowleft'));
       const y = Number(keys.has('s') || keys.has('arrowdown')) - Number(keys.has('w') || keys.has('arrowup'));
       const length = Math.hypot(x, y);

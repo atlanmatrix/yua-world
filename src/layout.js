@@ -1,4 +1,4 @@
-export const SPAWN = { x: 0, z: 17 };
+export const SPAWN = { x: -63, z: 120 };
 export const BRIDGES = [8, -83, 103];
 export const PONDS = [{x:-68,z:-34,rx:13,rz:10},{x:104,z:70,rx:10,rz:15}];
 export const riverX = z => 42 + Math.sin(z*.023)*15 + Math.sin(z*.051)*5;
@@ -11,6 +11,7 @@ export function isWaterBlocked(x,z) {
   return isWater(x,z);
 }
 export const ROAD_ROUTES = [
+  {type:'stone',width:3.5,points:[[-54,147],[-58,139],[-64,135],[-63,129],[-63,125]]},
   {type:'stone',width:3.6,points:[[0,0],[10,-12],[3,-25],[-7,-31],[-7,-34]]},
   {type:'stone',width:4.2,points:[[64,11],[76,14],[87,21],[82,25],[82,31]]},
   {type:'stone',width:3.8,points:[[-49,30],[-40,23],[-43,10],[-48,2],[-53,1]]},

@@ -25,6 +25,12 @@
       <button type="button" data-weather="snow" aria-label="雪天" aria-pressed="false">❄</button>
     </div>
   </aside>
+  <button id="minimap" type="button" aria-label="打开完整地图" aria-haspopup="dialog"><canvas id="minimap-canvas" aria-label="人物位置与朝向"></canvas><span class="map-expand" aria-hidden="true">↗</span></button>
+  <dialog id="world-map" aria-labelledby="map-title">
+    <div class="map-header"><span id="map-title">风栖小镇</span><button id="map-close" type="button" aria-label="关闭地图">×</button></div>
+    <canvas id="full-map-canvas" aria-label="完整小镇地图，显示人物、我的家、道路与主要建筑"></canvas>
+    <div class="map-legend"><span><i class="player-dot"></i>当前位置</span><span><i class="home-dot"></i>我的家</span></div>
+  </dialog>
   <div id="joystick" role="group" aria-label="左手移动摇杆"><div class="joystick-ring"></div><div id="joystick-knob"></div></div>
   <div class="look-indicator" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M5 16s4-7 11-7 11 7 11 7-4 7-11 7S5 16 5 16Z"/><circle cx="16" cy="16" r="3"/></svg></div>
   <div id="loading" role="status" aria-label="正在加载"><span></span></div>

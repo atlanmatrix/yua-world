@@ -49,3 +49,17 @@ export function batchScenery(source, scene, cellSize=48) {
   }
   scene.remove(source);return chunks;
 }
+
+// Batch rigid detail inside an articulated group without flattening child groups.
+export function batchLocalMeshes(part){
+  for(const child of [...part.children])if(child.isGroup)batchLocalMeshes(child);
+  const buckets=new Map();
+  for(const object of part.children){if(!object.isMesh||object.material.map)continue;if(!buckets.has(object.material))buckets.set(object.material,[]);buckets.get(object.material).push(object);}
+  for(const [material,objects] of buckets){if(objects.length<2)continue;const parts=[];let count=0;
+    for(const object of objects){object.updateMatrix();const g=object.geometry.index?object.geometry.toNonIndexed():object.geometry.clone();g.applyMatrix4(object.matrix);parts.push(g);count+=g.attributes.position.array.length;}
+    const positions=new Float32Array(count),normals=new Float32Array(count);let offset=0;
+    for(const g of parts){positions.set(g.attributes.position.array,offset);normals.set(g.attributes.normal.array,offset);offset+=g.attributes.position.array.length;g.dispose();}
+    const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.BufferAttribute(positions,3));geometry.setAttribute('normal',new THREE.BufferAttribute(normals,3));geometry.computeBoundingSphere();
+    const batch=new THREE.Mesh(geometry,material);batch.castShadow=batch.receiveShadow=true;for(const object of objects)part.remove(object);part.add(batch);
+  }
+}
