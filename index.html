@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#e9eadb" />
+  <title>风栖小镇 · Yua World</title>
+  <link rel="stylesheet" href="./src/style.css" />
+  <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js"}}</script>
+</head>
+<body>
+  <main id="world" aria-label="可探索的三维乡间小镇"></main>
+  <header class="brand"><span class="brand-icon">✳</span><div>风栖小镇<small>YUA WORLD · A LITTLE ESCAPE</small></div></header>
+  <div class="weather"><span class="sun">☀</span> 午后晴朗 <span class="divider"></span> 24°C</div>
+  <section class="intro"><span class="eyebrow">慢下来，去走走</span><h1>把日常，<br>留在小镇之外。</h1><p>沿着田间小路，发现属于你的片刻宁静。</p></section>
+  <div class="location"><span class="live-dot"></span><span id="location">小镇入口</span><span class="location-sub">自由漫游中</span></div>
+  <aside class="guide"><div class="guide-title">漫游指南 <span>EXPLORE</span></div><div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><span>或方向键移动</span></div><div><kbd>Shift</kbd><span>轻快奔跑</span><span class="mouse-tip">拖动画面 · 转动视角</span></div><div class="guide-footer">走近地标，发现小镇的故事 <button id="reset" type="button">回到入口 ↗</button></div></aside>
+  <aside class="postcard" aria-live="polite"><span id="landmark-index">01 / 05</span><h2 id="landmark-title">一座可以散步的小镇</h2><p id="landmark-text">从广场出发，去看看风车、花园和河畔。</p></aside>
+  <div class="touch-controls" aria-label="触屏移动控制"><button data-move="up" aria-label="向前走">↑</button><div><button data-move="left" aria-label="向左走">←</button><button data-move="down" aria-label="向后走">↓</button><button data-move="right" aria-label="向右走">→</button></div></div>
+  <div id="loading" role="status">正在走进风栖小镇…</div>
+  <footer>用脚步收藏风景 <span>DESIGNED FOR WANDERING</span></footer>
+  <script type="module" src="./src/main.js"></script>
+  <script>window.setTimeout(() => { const el = document.getElementById('loading'); if (el && !el.hidden) el.textContent = '加载时间较长，请检查网络是否可以访问 cdn.jsdelivr.net，然后刷新。'; }, 15000);</script>
+</body>
+</html>

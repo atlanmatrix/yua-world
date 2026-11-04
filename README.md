@@ -1,0 +1,42 @@
+# 风栖小镇 · Yua World
+
+基于 Three.js 的低多边形乡间小镇。戴上草帽，沿着小路游览红顶小屋、广场喷泉、麦田风车、河畔木桥和花园。全部场景与人物均由代码生成，无须下载模型或图片。
+
+## 本地运行
+
+需要 Node.js 22 或更新版本，无 npm 安装依赖。
+
+```sh
+npm run dev
+```
+
+在浏览器打开终端显示的端口（默认 5173）。Three.js 固定为 0.180.0，通过 `cdn.jsdelivr.net` 加载，需要浏览器联网并支持 WebGL。请通过 HTTP 服务访问，不能直接双击 HTML 文件。
+
+## 操作
+
+- WASD / 方向键：相对当前视角移动。
+- Shift：奔跑。
+- 拖动画面：旋转及俯仰视角。
+- 手机和平板：屏幕方向按钮移动，拖动场景调整视角。
+- 点击「回到入口」重置人物和视角。
+
+人物会避开房屋、树干、喷泉及河道；通过木桥可到达河对岸。靠近五处地标会显示对应介绍。
+
+## 检查与构建
+
+```sh
+npm test
+npm run build
+node scripts/serve.mjs dist
+```
+
+测试覆盖移动速度、碰撞、滑动、边界和河流通道。`dist/` 为可发布的静态站点，所有本地资源使用相对路径，兼容仓库 Pages 子路径。
+
+## 发布到 GitHub Pages
+
+1. 将代码推送到仓库的 `main` 分支。
+2. 在 GitHub 仓库 **Settings → Pages → Build and deployment → Source** 选择 **GitHub Actions**。
+3. `Deploy village to GitHub Pages` 工作流将运行测试、构建并发布；也可在 Actions 页面手动运行。
+4. 工作流成功后，使用部署任务输出的 Pages 地址访问。首次发布可能需要几分钟。
+
+没有后端、数据库或密钥要求。GitHub Actions 使用内置 `GITHUB_TOKEN`，无需手动添加 token。工作流必须成功运行才代表已发布；仅提交配置不会自动启用仓库的 Pages 设置。
