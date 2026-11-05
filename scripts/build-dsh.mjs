@@ -6,7 +6,7 @@ const output=process.env.DSH_OUTPUT||'dist-dsh';
 await rm(output,{recursive:true,force:true});await mkdir(`${output}/lib`,{recursive:true});
 const app=await build({entryPoints:['src/main.js'],bundle:true,write:false,format:'iife',minify:true,target:'es2022',legalComments:'inline'});
 let html=await readFile('index.html','utf8');const css=await readFile('src/style.css','utf8');
-html=html.replace(/<link rel="stylesheet"[^>]+>/,`<style>${css}</style>`).replace(/<script type="importmap">[\s\S]*?<\/script>/,'').replace('<script type="module" src="./src/main.js"></script>',`<script>${app.outputFiles[0].text.replaceAll('</script','<\\/script')}</script>`);
+html=html.replace(/<link rel="stylesheet"[^>]+>/,()=>`<style>${css}</style>`).replace(/<script type="importmap">[\s\S]*?<\/script>/,'').replace('<script type="module" src="./src/main.js"></script>',()=>`<script>${app.outputFiles[0].text.replaceAll('</script','<\\/script')}</script>`);
 html=html.replace('加载较慢，请检查网络后刷新','加载较慢，请检查 WebGL 支持后刷新');
 await writeFile(`${output}/lib/world.html`,html);
 await cp('dsh/src/host.js',`${output}/lib/host.js`);

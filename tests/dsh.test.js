@@ -23,3 +23,11 @@ test('release is fast-forward, idempotent, rejects unrelated branches, and prese
   assert.equal(run('git',['status','--porcelain=v1']),before);assert.equal(run('git',['diff','--cached','--binary']),index);
  }finally{await rm(temp,{recursive:true,force:true});}
 });
+test('built plugin is self-contained and every inline script parses as JavaScript',async()=>{
+ run(process.execPath,['scripts/build-dsh.mjs']);
+ const {Script}=await import('node:vm');const html=await readFile('dist-dsh/lib/world.html','utf8');
+ assert.ok(!/<script[^>]+src=/.test(html));assert.ok(!/<link[^>]+href=/.test(html));assert.ok(!html.includes('type="importmap"'));
+ const scripts=[...html.matchAll(/<script>([\s\S]*?)<\/script>/g)];assert.ok(scripts.length>=2);for(const [,source] of scripts)new Script(source);
+ new Script(await readFile('dist-dsh/lib/client.js','utf8'));
+ const manifest=JSON.parse(await readFile('dist-dsh/package.json','utf8'));for(const path of Object.values(manifest.exports))assert.ok((await readFile(`dist-dsh/${path}`)).length>0);
+});
