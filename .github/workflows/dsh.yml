@@ -1,0 +1,25 @@
+name: Publish dsh plugin
+on:
+  push:
+    branches: [main]
+    paths: ['src/**', 'index.html', 'dsh/**', 'scripts/*dsh*', 'package*.json', '.github/workflows/dsh.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: dsh-release
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - run: npm run build:dsh
+      - run: npm run publish:dsh

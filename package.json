@@ -6,7 +6,16 @@
   "scripts": {
     "dev": "node scripts/serve.mjs",
     "build": "node scripts/build.mjs",
-    "test": "node --test"
+    "test": "node --test",
+    "build:dsh": "node scripts/build-dsh.mjs",
+    "pack:dsh": "npm pack ./dist-dsh",
+    "publish:dsh": "node scripts/publish-dsh.mjs"
   },
-  "engines": { "node": ">=22" }
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.12",
+    "three": "0.180.0"
+  }
 }

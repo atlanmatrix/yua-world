@@ -44,5 +44,6 @@ try {
     sun.position.set(player.position.x-25,45,player.position.z+20);sun.target.position.set(player.position.x,player.position.y,player.position.z);sun.target.updateMatrixWorld();
     climate.update(dt,elapsed,player.position);camera.position.lerp(cameraTarget(),1-Math.exp(-dt*5));lookAt.set(player.position.x,player.position.y+1.25,player.position.z);camera.lookAt(lookAt);renderer.render(scene,camera);loading.hidden=true;
   });
+  addEventListener('pagehide',()=>{renderer.setAnimationLoop(null);renderer.dispose();},{once:true});
   renderer.domElement.addEventListener('webglcontextlost',event=>{event.preventDefault();loading.hidden=false;loading.dataset.error='true';loading.setAttribute('aria-label','图形连接中断，请刷新');});
 }catch(error){console.error(error);loading.hidden=false;loading.dataset.error='true';loading.setAttribute('aria-label','图形加载失败，请检查浏览器是否支持 WebGL');}

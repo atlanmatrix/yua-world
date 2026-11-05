@@ -48,3 +48,9 @@ node scripts/serve.mjs dist
 4. 工作流成功后，使用部署任务输出的 Pages 地址访问。首次发布可能需要几分钟。
 
 没有后端、数据库或密钥要求。GitHub Actions 使用内置 `GITHUB_TOKEN`，无需手动添加 token。工作流必须成功运行才代表已发布；仅提交配置不会自动启用仓库的 Pages 设置。
+
+## DeepSeek Harness 插件
+
+在 dsh 0.2.2-rc.1 插件管理页添加 `https://github.com/atlanmatrix/yua-world.git#dsh`，从侧栏「风栖小镇」进入。插件自带完整离线资源，无需安装期编译。网站和 Pages 流程保留，插件源码及数据迁移见 [dsh/README.md](dsh/README.md)。
+
+本地运行 `npm ci && npm run build:dsh`，使用 `npm run publish:dsh` 发布已编译插件分支；自动发布由 `.github/workflows/dsh.yml` 执行。
