@@ -40,3 +40,7 @@ npm run publish:dsh       # 普通快进推送，独立临时 bare 仓库/index
 - 同版本 docs/subsystems/client-modules.md、slots.md、packages/client/connection/README.md
 
 无需 API Key：插件不调用模型。
+
+## 验证状态
+
+已在官方 dsh 0.2.2-rc.1 的隔离 Web profile 中，从上述真实 Git 地址安装并验证侧栏、WebGL 场景、天气、地图及存档导入/刷新恢复。无须模型 API Key；首次启动若显示可选登录弹窗，关闭后即可进入插件。文档子路径的 HTTP/资源加载已验证；Desktop/Electron 未实际启动，其自定义协议仅完成基于 Connection 接口的路径审计，不宣称实测通过。
