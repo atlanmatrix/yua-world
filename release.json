@@ -1,7 +1,7 @@
 {
-  "artifactSha256": "dad4154aee1800451b1f5cb05cd9846697f0164ff49b65a791bfe73c3f71f4e9",
+  "artifactSha256": "70692a75ec8ffb2b58537f9bddb84318eb9ac55bc4c61dbb8adbf18fab5e9cfb",
   "format": 1,
   "package": "dsh-yua-world",
-  "source": "ca121dcd118c438b452e54b2332b860744a65093",
+  "source": "e41d526e70c5df56c5c3667f696546c0ccc1ad02",
   "dsh": "0.2.2-rc.1"
 }
