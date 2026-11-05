@@ -6,7 +6,7 @@ const output=resolve(process.env.DSH_OUTPUT||'dist-dsh');
 const git=(args,options={})=>execFileSync('git',args,{encoding:'utf8',...options}).trim();
 const remote=process.env.DSH_REMOTE||git(['remote','get-url','origin']);
 if(process.env.DSH_GITHUB_TOKEN&&remote.startsWith('https://github.com/')){
-  const n=Number(process.env.GIT_CONFIG_COUNT||0);process.env[`GIT_CONFIG_KEY_${n}`]='http.https://github.com/.extraheader';process.env[`GIT_CONFIG_VALUE_${n}`]='AUTHORIZATION: basic '+Buffer.from('x-access-token:'+process.env.DSH_GITHUB_TOKEN).toString('base64');process.env.GIT_CONFIG_COUNT=String(n+1);
+  const n=Number(process.env.GIT_CONFIG_COUNT||0);process.env[`GIT_CONFIG_KEY_${n}`]='http.https://github.com/.extraheader';process.env[`GIT_CONFIG_VALUE_${n}`]='';process.env[`GIT_CONFIG_KEY_${n+1}`]='http.https://github.com/.extraheader';process.env[`GIT_CONFIG_VALUE_${n+1}`]='AUTHORIZATION: basic '+Buffer.from('x-access-token:'+process.env.DSH_GITHUB_TOKEN).toString('base64');process.env.GIT_CONFIG_COUNT=String(n+2);
 }
 const temp=await mkdtemp(join(tmpdir(),'yua-publish-'));
 try{
