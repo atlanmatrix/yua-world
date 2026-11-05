@@ -23,3 +23,5 @@ jobs:
       - run: npm run build
       - run: npm run build:dsh
       - run: npm run publish:dsh
+        env:
+          DSH_GITHUB_TOKEN: ${{ github.token }}

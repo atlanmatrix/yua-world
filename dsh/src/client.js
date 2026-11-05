@@ -7,7 +7,7 @@ export function apply(ctx){
     const frame=React.useRef(null),input=React.useRef(null);
     React.useEffect(()=>{
       const controller=new AbortController();
-      ctx.connection.rpc.call('/yua-world','document',{},controller.signal).then(result=>{
+      ctx.connection.rpc.call('/api','yua-world/document',{},controller.signal).then(result=>{
         if(!controller.signal.aborted){if(result.ok)setHtml(result.value);else setError(result.error.message);}
       }).catch(e=>{if(!controller.signal.aborted)setError(String(e));});
       return ()=>{controller.abort();if(frame.current)frame.current.srcdoc='';};

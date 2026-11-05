@@ -3,9 +3,12 @@ export const name='yua-world';
 export const inject=['connection'];
 export function apply(ctx){
   const document=readFile(new URL('./world.html',import.meta.url),'utf8');
-  ctx.effect(()=>ctx.connection.rpc.handle('/yua-world',async(endpoint,payload,signal,peer)=>{
-    if(peer.principal.kind!=='owner')return {ok:false,error:{code:'forbidden',message:'Owner access required',details:{}}};
-    if(endpoint!=='document')return {ok:false,error:{code:'not-found',message:'Unknown endpoint',details:{}}};
-    return {ok:true,value:await document};
-  }),'yua-world: authenticated document channel');
+  ctx.effect(()=>ctx.connection.fetch.register({
+    path:'/api/yua-world/document',methods:['POST'],requestBody:'buffered',
+    async fetch(request){
+      const body=await request.json();
+      if(body.type!=='client-request'||typeof body.rpcId!=='string'||body.method!=='yua-world/document')return new Response('Invalid request',{status:400});
+      return Response.json({type:'server-response',rpcId:body.rpcId,result:{ok:true,value:await document}},{headers:{'cache-control':'no-store'}});
+    },
+  }),'yua-world: owner-only Connection Fetch route');
 }

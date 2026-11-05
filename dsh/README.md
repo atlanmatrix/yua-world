@@ -4,7 +4,7 @@
 
 在插件管理页添加此 Git 地址，启用后点击侧栏「风栖小镇」。仅声明支持已核对接口的 **dsh 0.2.2-rc.1**（官方源码 fcc0ad462172522aaf5c93a7b2e01f6b9f0b0159）；后续预稳定版本需要重新验证。
 
-包根的 cordis.patch.yml 加载 dsh-yua-world Host；同名客户端通过 `__ModuleLoader__.load`、`sidebar.panellist` 和 `main` Slots 注册。Host 通过官方 Connection 的 `/yua-world` 通道向 owner 返回随包发布的 world.html。iframe 的 srcdoc 包含全部 Three.js、JS 和 CSS，无网络资源、Worker、WASM、字体、Service Worker、动态分包或安装期构建。因为不构造 HTTP 根路径、file URL 或 Desktop 路径，资源与认证均由 Connection 承载；Desktop 自定义协议仍需真实 Desktop 验证，不能以 Web 实测替代。
+包根的 cordis.patch.yml 加载 dsh-yua-world Host；同名客户端通过 `__ModuleLoader__.load`、`sidebar.panellist` 和 `main` Slots 注册。Host 通过官方 Connection 的 `/api/yua-world/document` 精确路由（Connection 自动校验 owner）向 owner 返回随包发布的 world.html。iframe 的 srcdoc 包含全部 Three.js、JS 和 CSS，无网络资源、Worker、WASM、字体、Service Worker、动态分包或安装期构建。因为不构造 HTTP 根路径、file URL 或 Desktop 路径，资源与认证均由 Connection 承载；Desktop 自定义协议仍需真实 Desktop 验证，不能以 Web 实测替代。
 
 iframe 隔离样式与键盘事件；卸载中止 RPC、移除 iframe，pagehide 释放 WebGL。iframe 允许脚本与同源存储，只运行本包经过构建的代码，不加载第三方网页。
 
